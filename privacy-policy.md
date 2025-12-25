@@ -1,28 +1,46 @@
 # Privacy Policy
 
-Effective Date: June 12th, 2023. Modified July 1st, 2023.
+Effective Date: June 12th, 2023. Last Updated: December 25th, 2025.
 
-Welcome! This Privacy Policy explains how we, Snusbase.com (also referred to as "we", "us", "our"), collect, use, and protect your personal information when you use our Data Breach Search Engine and related services (collectively referred to as “Services”).
+Welcome. This Privacy Policy explains how we, Snusbase.com (also referred to as "we", "us", or "our"), collect, use, and protect your personal information when you use our Data Breach Search Engine and related services (collectively referred to as the "Services").
 
 ## 1. Collection of Personal Information
 
-We collect the following personal information when you use our Services: your email address, username, and account creation time. During your use of our Services, we may also temporarily log specific information related to your searches, including the time a search was made, the user account that made it, the amount of results your search got, and the duration of the search. This log is kept for a period of exactly 5 minutes before it is permanently deleted.
+We collect the following personal information when you use our Services: your email address, username, and account creation time.
+
+During your use of our Services, we may temporarily log limited technical metadata related to searches, including:
+
+* The time a search was made
+* The user account that initiated the search
+* The number of results returned
+* The duration of the search request
+* The search configuration options selected, such as wildcard usage, search type, or similar non-content parameters
+
+We do not log, store, record, or retain the actual search terms, query inputs, identifiers searched for, or the content of any search. Search terms and query contents are processed in memory only and remain private to the user.
+
+All search-related metadata logs are retained for a period of exactly five (5) minutes and are then permanently deleted.
 
 ## 2. Use of Personal Information
 
-We use your personal information to provide and enhance our Services, respond to your inquiries, manage our relationship with you, and to ensure compliance with our Terms of Service. The collection and temporary retention of your search logs are for the sole purpose of ensuring the stability and operational efficiency of our Services.
+We use your personal information to provide and improve our Services, respond to inquiries, manage user accounts, and ensure compliance with our Terms of Service.
+
+The temporary collection of search-related metadata, including selected search options, is used solely for operational purposes such as maintaining service stability, diagnosing errors, preventing abuse, and optimizing performance. This information is not used for profiling, behavioral analysis, or monitoring the substance of user searches.
 
 ## 3. No Sharing of Personal Information
 
-We do not sell, distribute, or share your personal information with any third parties, or service providers, under any circumstances. Your personal information is strictly used to provide and improve our Services.
+We do not sell, rent, distribute, or share your personal information or search-related metadata with any third parties or service providers under any circumstances.
+
+All personal information is used strictly for the operation and maintenance of our Services.
 
 ## 4. Protection of Personal Information
 
-We employ robust security measures to protect your personal information from unauthorized access, use, disclosure, alteration, or destruction. However, we cannot guarantee the absolute security of your personal information and cannot protect against all potential security threats.
+We implement appropriate technical and organizational security measures to protect your personal information from unauthorized access, disclosure, alteration, or destruction. While we take security seriously, no system can be guaranteed to be completely secure.
 
 ## 5. Retention of Personal Information
 
-Your personal information is retained for as long as necessary to provide our Services and comply with legal obligations.
+Account-related personal information is retained only for as long as necessary to provide the Services or comply with applicable legal obligations.
+
+Search metadata, as described in Section 1, is automatically deleted after five (5) minutes. Search terms and query contents are never retained.
 
 ## 6. Warrant Canary
 
@@ -30,14 +48,16 @@ As long as this section is present in our Privacy Policy, we affirm that we have
 
 ## 7. Your Rights
 
-You have the right to access, correct, delete, or restrict the processing of your personal information, subject to applicable laws. To exercise these rights, please contact us at our designated contact address.
+Subject to applicable laws, you have the right to access, correct, delete, or restrict the processing of your personal information. To exercise these rights, please contact us through our designated contact channels.
 
 ## 8. Changes to This Privacy Policy
 
-We reserve the right to modify or update this Privacy Policy at any time. Your continued use of our Services after any changes constitutes your acceptance of the revised Privacy Policy. We encourage you to review this Privacy Policy periodically.
+We reserve the right to modify or update this Privacy Policy at any time. Continued use of the Services following any changes constitutes acceptance of the revised Privacy Policy.
+
+For transparency, the current and historical versions of this Privacy Policy and our Terms of Service are publicly hosted on GitHub Pages. Users who wish to monitor changes may follow the repository at [https://github.com/snusbase/docs.snusbase.com](https://github.com/snusbase/docs.snusbase.com) by using the GitHub Watch feature to receive update notifications.
 
 ## 9. Contact Us
 
-If you have any questions or concerns about this Privacy Policy or our privacy practices, please contact us via our customer support page.
+If you have any questions or concerns regarding this Privacy Policy or our data practices, please contact us via our customer support page.
 
-By using our Services, you acknowledge that you have read, understood, and agree to the terms of this Privacy Policy. If you do not agree with the terms of this Privacy Policy, please do not use our Services.
+By using our Services, you acknowledge that you have read, understood, and agree to this Privacy Policy. If you do not agree, please discontinue use of the Services.
