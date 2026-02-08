@@ -5,11 +5,11 @@
 1. [Introduction](#introduction)
 2. [Authentication](#authentication)
 3. [API Endpoints](#api-endpoints)
-   - [Database Search](#database-search)
    - [Database Statistics](#database-statistics)
-   - [IP WHOIS Lookup](#ip-whois-lookup)
-   - [Hash Lookup](#hash-lookup)
+   - [Database Search](#database-search)
    - [Combo Lookup](#combo-lookup)
+   - [Hash Lookup](#hash-lookup)
+   - [IP WHOIS Lookup](#ip-whois-lookup)
 4. [Example Search Queries](#example-search-queries)
    - [Multiple Terms and Types](#multiple-terms-and-types)
    - [Search Specific Tables](#search-specific-tables)
@@ -37,6 +37,43 @@ Auth: sb[...]
 Activation codes generated after September 2021 start with `sb` followed by 28 random characters.
 
 ## API Endpoints
+
+### Database Statistics
+
+Retrieve information about the current databases in the main search engine. This endpoint does not require authentication.
+
+- **Endpoint:** `https://api.snusbase.com/data/stats`
+- **Method:** `GET`
+
+#### Request Example
+
+```http
+GET https://api.snusbase.com/data/stats
+```
+
+#### Response Example
+
+```json
+{
+  "rows": 18006941078,
+  "tables": {
+    "0001_STEALERLOGS_NA_121M_MALWARE_2023": [
+      "email", "username", "password", "host", "_domain"
+    ],
+    /* Other tables */
+  },
+  "features": {
+    "view_more": [
+      "0005_ZING_VN_51M_ENTERTAINMENT_052015",
+      /* ... */
+    ],
+    "combo_lookup": [
+      "0001_PEMIBLANC_COMBOLIST_245M_2018",
+      /* ... */
+    ]
+  }
+}
+```
 
 ### Database Search
 
@@ -75,169 +112,22 @@ Auth: YOUR_API_KEY_HERE
 
 ```json
 {
-  "took": 173,
-  "size": 1176,
+  "took": 31.714,
+  "size": 1233,
   "results": {
-    "2012_BREACHED_TO_212K_HACKING_112022": [
+    "2123_BREACHFORUMS_BF_323K_HACKING_012026": [
       {
-        "username": "example",
+        "username": "avvd",
         "email": "example@gmail.com",
-        "lastip": "2a0b:f4c2:1::1",
-        "hash": "4b437d0eb94655ab691a7d38caf69d6e",
-        "salt": "bdyYGKsW",
-        "uid": "71998",
-        "created": "1660914400",
-        "regip": "2a0b:f4c2:1::1"
+        "lastip": "127.0.0.9",
+        "hash": "$argon2i$v=19$m=65536,t=4,p=1$NVphazc1SUg3YUVxNFV3Nw$EmshtvIzcwhG8lnDTsl0XvzCyg7h8k+Qr3tgTQihvZI",
+        "salt": "Wlwirmmh",
+        "uid": "331153",
+        "created": "1729340505",
+        "updated": "1729341708"
       }
-      /* Other results */
-    ]
-  }
-}
-```
-
-### Database Statistics
-
-Retrieve information about the current databases in the main search engine. This endpoint does not require authentication.
-
-- **Endpoint:** `https://api.snusbase.com/data/stats`
-- **Method:** `GET`
-
-#### Request Example
-
-```http
-GET https://api.snusbase.com/data/stats
-```
-
-#### Response Example
-
-```json
-{
-  "rows": 16720220425,
-  "tables": {
-    "0001_STEALERLOGS_NA_106M_MALWARE_2023": [
-      "host",
-      "username",
-      "password",
-      "_domain",
-      "email"
-    ]
-    /* Other tables */
-  },
-  "features": {
-    "view_more": [
-      "0032_CANADA_CA_2M_BUSINESS_2011",
-      /* ... */
     ],
-    "combo_lookup": [
-      "0001_PEMIBLANC_COMBOLIST_245M_2018",
-      /* ... */
-    ]
-  }
-}
-```
-
-### IP WHOIS Lookup
-
-Retrieve WHOIS information for IP addresses.
-
-- **Endpoint:** `https://api.snusbase.com/tools/ip-whois`
-- **Method:** `POST`
-- **Headers:**
-  - `Content-Type: application/json`
-  - `Auth: YOUR_API_KEY_HERE`
-
-#### Parameters
-
-| Parameter | Type             | Required | Description                  |
-|-----------|------------------|----------|------------------------------|
-| `terms`   | Array of strings | Yes      | IP addresses to look up.     |
-
-#### Request Example
-
-```http
-POST https://api.snusbase.com/tools/ip-whois
-Content-Type: application/json
-Auth: YOUR_API_KEY_HERE
-
-{
-  "terms": ["12.34.56.78", "127.0.0.1"]
-}
-```
-
-#### Response Example
-
-```json
-{
-  "took": 108,
-  "size": 1,
-  "results": {
-    "12.34.56.78": {
-      "as": "AS7018 AT&T Services, Inc.",
-      "city": "Atlanta",
-      "country": "United States",
-      "countryCode": "US",
-      "isp": "AT&T Services, Inc.",
-      "lat": 33.7173,
-      "lon": -84.4783,
-      "org": "AT&T Services, Inc.",
-      "region": "GA",
-      "regionName": "Georgia",
-      "status": "success",
-      "timezone": "America/New_York",
-      "zip": "30311"
-    }
-  },
-  "errors": {
-    "127.0.0.1": "reserved range"
-  }
-}
-```
-
-### Hash Lookup
-
-Search for corresponding plaintext passwords or vice versa in the cracked password hash database.
-
-- **Endpoint:** `https://api.snusbase.com/tools/hash-lookup`
-- **Method:** `POST`
-- **Headers:**
-  - `Content-Type: application/json`
-  - `Auth: YOUR_API_KEY_HERE`
-
-#### Parameters
-
-| Parameter  | Type                | Required | Description                                                                                                                                                         |
-|------------|---------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `terms`    | Array of strings    | Yes      | Hashes or passwords to look up.                                                                                                                                     |
-| `types`    | Array of strings    | Yes      | Types of lookup. Possible values: `"hash"`, `"password"`.                                                                                                           |
-| `wildcard` | Boolean             | No       | Enable wildcard search.                                                                                                                                             |
-| `group_by` | Boolean or string   | No       | Group results. Defaults to `"db"`. Set to `false` to disable grouping.                                                                                            |
-
-#### Request Example
-
-```http
-POST https://api.snusbase.com/tools/hash-lookup
-Content-Type: application/json
-Auth: YOUR_API_KEY_HERE
-
-{
-  "terms": ["482c811da5d5b4bc6d497ffa98491e38"],
-  "types": ["hash"]
-}
-```
-
-#### Response Example
-
-```json
-{
-  "took": 57,
-  "size": 1,
-  "results": {
-    "0001_HASHES_ORG_1913M_2021": [
-      {
-        "hash": "482c811da5d5b4bc6d497ffa98491e38",
-        "password": "password123"
-      }
-    ]
+    /* Other results.. */
   }
 }
 ```
@@ -278,17 +168,129 @@ Auth: YOUR_API_KEY_HERE
 
 ```json
 {
-  "took": 42,
-  "size": 3,
+  "took": 2.905,
+  "size": 1194,
   "results": {
-    "0005_COLLECTION1_COMBOLIST_750M_2019": [
+    "0007_COLLECTION3_COMBOLIST_300M_2019": [
       {
         "username": "example@gmail.com",
-        "password": "p4ssw0rd",
-        "other": "example.com"
+        "password": "0981122847"
+      },
+      {
+        "username": "example@gmail.com",
+        "password": "123456"
+      },
+      /* Other results.. */
+    ],
+    /* Other combolists */
+  }
+}
+```
+
+### Hash Lookup
+
+Search for corresponding plaintext passwords or vice versa in the cracked password hash database.
+
+- **Endpoint:** `https://api.snusbase.com/tools/hash-lookup`
+- **Method:** `POST`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Auth: YOUR_API_KEY_HERE`
+
+#### Parameters
+
+| Parameter  | Type                | Required | Description                                                                                                                                                         |
+|------------|---------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `terms`    | Array of strings    | Yes      | Hashes or passwords to look up.                                                                                                                                     |
+| `types`    | Array of strings    | Yes      | Types of lookup. Possible values: `"hash"`, `"password"`.                                                                                                           |
+| `wildcard` | Boolean             | No       | Enable wildcard search.                                                                                                                                             |
+| `group_by` | Boolean or string   | No       | Group results. Defaults to `"db"`. Set to `false` to disable grouping.                                                                                            |
+
+#### Request Example
+
+```http
+POST https://api.snusbase.com/tools/hash-lookup
+Content-Type: application/json
+Auth: YOUR_API_KEY_HERE
+
+{
+  "terms": ["482c811da5d5b4bc6d497ffa98491e38"],
+  "types": ["hash"]
+}
+```
+
+#### Response Example
+
+```json
+{
+  "took": 0.102,
+  "size": 1,
+  "results": {
+    "HASHES": [
+      {
+        "hash": "482c811da5d5b4bc6d497ffa98491e38",
+        "password": "password123"
       }
-      /* Other results */
     ]
+  }
+}
+```
+
+### IP WHOIS Lookup
+
+Retrieve WHOIS information for IP addresses.
+
+- **Endpoint:** `https://api.snusbase.com/tools/ip-whois`
+- **Method:** `POST`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Auth: YOUR_API_KEY_HERE`
+
+#### Parameters
+
+| Parameter | Type             | Required | Description                  |
+|-----------|------------------|----------|------------------------------|
+| `terms`   | Array of strings | Yes      | IP addresses to look up.     |
+
+#### Request Example
+
+```http
+POST https://api.snusbase.com/tools/ip-whois
+Content-Type: application/json
+Auth: YOUR_API_KEY_HERE
+
+{
+  "terms": ["12.34.56.78"]
+}
+```
+
+#### Response Example
+
+```json
+{
+  "took": 6.4,
+  "size": 1,
+  "results": {
+    "12.34.56.78": {
+      "continent": "North America",
+      "continentCode": "NA",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "OH",
+      "regionName": "Ohio",
+      "city": "Columbus",
+      "zip": "43215",
+      "lat": 39.9612,
+      "lon": -82.9988,
+      "timezone": "America/New_York",
+      "isp": "AT&T Enterprises, LLC",
+      "org": "AT&T Enterprises, LLC",
+      "as": "AS7018 AT&T Enterprises, LLC",
+      "asname": "ATT-INTERNET4",
+      "mobile": false,
+      "proxy": false,
+      "hosting": false
+    }
   }
 }
 ```
@@ -391,18 +393,19 @@ const sendRequest = async (url, body = null) => {
   return await response.json();
 };
 
+// Example: Get Database Statistics
+sendRequest('data/stats').then(response => console.log(response));
+
 // Example: Search Snusbase
 sendRequest('data/search', {
   terms: ['example@gmail.com'],
   types: ['email'],
 }).then(response => console.log(response));
 
-// Example: Get Database Statistics
-sendRequest('data/stats').then(response => console.log(response));
-
-// Example: IP WHOIS Lookup
-sendRequest('tools/ip-whois', {
-  terms: ['12.34.56.78'],
+// Example: Combo Lookup
+sendRequest('tools/combo-lookup', {
+  terms: ['example@gmail.com'],
+  types: ['username'],
 }).then(response => console.log(response));
 
 // Example: Hash Lookup
@@ -411,10 +414,9 @@ sendRequest('tools/hash-lookup', {
   types: ['hash'],
 }).then(response => console.log(response));
 
-// Example: Combo Lookup
-sendRequest('tools/combo-lookup', {
-  terms: ['example@gmail.com'],
-  types: ['username'],
+// Example: IP WHOIS Lookup
+sendRequest('tools/ip-whois', {
+  terms: ['12.34.56.78'],
 }).then(response => console.log(response));
 ```
 
@@ -435,6 +437,10 @@ def send_request(url, body=None):
     response = requests.request(method, snusbase_api + url, headers=headers, json=body)
     return response.json()
 
+# Example: Get Database Statistics
+stats_response = send_request('data/stats')
+print(stats_response)
+
 # Example: Search Snusbase
 search_response = send_request('data/search', {
     'terms': ['example@gmail.com'],
@@ -442,15 +448,12 @@ search_response = send_request('data/search', {
 })
 print(search_response)
 
-# Example: Get Database Statistics
-stats_response = send_request('data/stats')
-print(stats_response)
-
-# Example: IP WHOIS Lookup
-ip_whois_response = send_request('tools/ip-whois', {
-    'terms': ['12.34.56.78'],
+# Example: Combo Lookup
+combo_lookup_response = send_request('tools/combo-lookup', {
+    'terms': ['example@gmail.com'],
+    'types': ['username'],
 })
-print(ip_whois_response)
+print(combo_lookup_response)
 
 # Example: Hash Lookup
 hash_lookup_response = send_request('tools/hash-lookup', {
@@ -459,12 +462,11 @@ hash_lookup_response = send_request('tools/hash-lookup', {
 })
 print(hash_lookup_response)
 
-# Example: Combo Lookup
-combo_lookup_response = send_request('tools/combo-lookup', {
-    'terms': ['example@gmail.com'],
-    'types': ['username'],
+# Example: IP WHOIS Lookup
+ip_whois_response = send_request('tools/ip-whois', {
+    'terms': ['12.34.56.78'],
 })
-print(combo_lookup_response)
+print(ip_whois_response)
 ```
 
 ## Error Handling
