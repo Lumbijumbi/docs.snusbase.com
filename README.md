@@ -9,6 +9,7 @@
    - [Database Statistics](#database-statistics)
    - [IP WHOIS Lookup](#ip-whois-lookup)
    - [Hash Lookup](#hash-lookup)
+   - [Combo Lookup](#combo-lookup)
 4. [Example Search Queries](#example-search-queries)
    - [Multiple Terms and Types](#multiple-terms-and-types)
    - [Search Specific Tables](#search-specific-tables)
@@ -96,18 +97,15 @@ Auth: YOUR_API_KEY_HERE
 
 ### Database Statistics
 
-Retrieve information about the current databases in the main search engine.
+Retrieve information about the current databases in the main search engine. This endpoint does not require authentication.
 
 - **Endpoint:** `https://api.snusbase.com/data/stats`
 - **Method:** `GET`
-- **Headers:**
-  - `Auth: YOUR_API_KEY_HERE`
 
 #### Request Example
 
 ```http
 GET https://api.snusbase.com/data/stats
-Auth: YOUR_API_KEY_HERE
 ```
 
 #### Response Example
@@ -130,12 +128,8 @@ Auth: YOUR_API_KEY_HERE
       "0032_CANADA_CA_2M_BUSINESS_2011",
       /* ... */
     ],
-    "hash_lookup": [
-      "0001_HASHES_ORG_1913M_2021",
-      /* ... */
-    ],
     "combo_lookup": [
-      "0001_PEMIBLANC_COMBOLIST_245M",
+      "0001_PEMIBLANC_COMBOLIST_245M_2018",
       /* ... */
     ]
   }
@@ -217,7 +211,6 @@ Search for corresponding plaintext passwords or vice versa in the cracked passwo
 | `types`    | Array of strings    | Yes      | Types of lookup. Possible values: `"hash"`, `"password"`.                                                                                                           |
 | `wildcard` | Boolean             | No       | Enable wildcard search.                                                                                                                                             |
 | `group_by` | Boolean or string   | No       | Group results. Defaults to `"db"`. Set to `false` to disable grouping.                                                                                            |
-| `tables`   | Array of strings    | No       | Limit search to specific tables.                                                                                                                                    |
 
 #### Request Example
 
@@ -249,6 +242,57 @@ Auth: YOUR_API_KEY_HERE
 }
 ```
 
+### Combo Lookup
+
+Search the combolist database for username/password combinations from large credential dumps.
+
+- **Endpoint:** `https://api.snusbase.com/tools/combo-lookup`
+- **Method:** `POST`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Auth: YOUR_API_KEY_HERE`
+
+#### Parameters
+
+| Parameter  | Type                | Required | Description                                                                                                                |
+|------------|---------------------|----------|----------------------------------------------------------------------------------------------------------------------------|
+| `terms`    | Array of strings    | Yes      | Search terms (usernames or passwords).                                                                                     |
+| `types`    | Array of strings    | Yes      | Types of data to search. Possible values: `"username"`, `"password"`.                                                      |
+| `wildcard` | Boolean             | No       | Enable wildcard search (`true` or `false`).                                                                                |
+| `group_by` | Boolean or string   | No       | Group results. Defaults to `"db"`. Set to `false` to disable grouping.                                                     |
+
+#### Request Example
+
+```http
+POST https://api.snusbase.com/tools/combo-lookup
+Content-Type: application/json
+Auth: YOUR_API_KEY_HERE
+
+{
+  "terms": ["example@gmail.com"],
+  "types": ["username"]
+}
+```
+
+#### Response Example
+
+```json
+{
+  "took": 42,
+  "size": 3,
+  "results": {
+    "0005_COLLECTION1_COMBOLIST_750M_2019": [
+      {
+        "username": "example@gmail.com",
+        "password": "p4ssw0rd",
+        "other": "example.com"
+      }
+      /* Other results */
+    ]
+  }
+}
+```
+
 ## Example Search Queries
 
 ### Multiple Terms and Types
@@ -270,7 +314,7 @@ Auth: YOUR_API_KEY_HERE
 
 ### Search Specific Tables
 
-You can specify one or multiple tables. This is less efficient for searches involving more than ~100 tables, as it will display all available columns rather than the default 30 or so. This is used for the "View More" feature on our websites.
+You can specify one or multiple tables. This will display all available columns rather than the default set. This is used for the "View More" feature on our websites.
 
 #### Request Example
 
@@ -287,10 +331,6 @@ Auth: YOUR_API_KEY_HERE
 ```
 
 ### Group by Specific Column
-
-Supported columns to group by include:
-
-- `"username"`, `"email"`, `"lastip"`, `"hash"`, `"salt"`, `"password"`, `"name"`, `"_domain"`, `"id"`, `"uid"`, `"phone"`, `"domain"`, `"date"`, `"created"`, `"host"`, `"followers"`, `"updated"`, `"address"`, `"birthdate"`, `"other"`, `"city"`, `"state"`, `"country"`, `"zip"`, `"unparsed"`, `"gender"`, `"company"`, `"language"`, `"url"`, `"job"`, `"regip"`.
 
 If a result doesn't have the column you want to group by, it will be appended to the `NO_{GROUP_BY}` object. For example, if you group by `"email"` but a result doesn't have an email column, it can be found in `NO_EMAIL`.
 
@@ -370,12 +410,17 @@ sendRequest('tools/hash-lookup', {
   terms: ['482c811da5d5b4bc6d497ffa98491e38'],
   types: ['hash'],
 }).then(response => console.log(response));
+
+// Example: Combo Lookup
+sendRequest('tools/combo-lookup', {
+  terms: ['example@gmail.com'],
+  types: ['username'],
+}).then(response => console.log(response));
 ```
 
 ### Python
 
 ```python
-import json
 import requests
 
 snusbase_auth = 'YOUR_API_KEY_HERE'
@@ -394,7 +439,6 @@ def send_request(url, body=None):
 search_response = send_request('data/search', {
     'terms': ['example@gmail.com'],
     'types': ['email'],
-    'wildcard': False,
 })
 print(search_response)
 
@@ -414,6 +458,13 @@ hash_lookup_response = send_request('tools/hash-lookup', {
     'types': ['hash'],
 })
 print(hash_lookup_response)
+
+# Example: Combo Lookup
+combo_lookup_response = send_request('tools/combo-lookup', {
+    'terms': ['example@gmail.com'],
+    'types': ['username'],
+})
+print(combo_lookup_response)
 ```
 
 ## Error Handling
@@ -424,7 +475,7 @@ The API uses standard HTTP status codes to indicate the success or failure of re
 |-------------|-------------------------------------------------|
 | **200 OK**  | Successful request.                             |
 | **400 Bad Request** | Invalid input or missing required parameters. |
-| **401 Unauthorized** | Invalid or missing API key.            |
+| **401 Unauthorized** | Invalid, expired, or missing API key.  |
 | **429 Too Many Requests** | Rate limit exceeded.              |
 
 Detailed error messages are provided in the `errors` array in the response body. These messages are safe to display to end users in your application.
@@ -434,14 +485,21 @@ Detailed error messages are provided in the `errors` array in the response body.
 To ensure fair usage and prevent abuse, the API implements rate limiting. Current limits are:
 
 - **`/data/search`**: 2,048 requests every 12 hours.
-- **All other endpoints**: 512 requests per minute.
+- **`/tools/combo-lookup`**: 4,096 requests every 12 hours.
+- **All other endpoints**: 256 requests every 2 minutes.
 
-If you exceed these limits, you'll receive a **429 Too Many Requests** response. The response headers include information about your remaining quota and reset time via `X-Rate-Limit`, `X-Rate-Limit-Remaining`, and `X-Rate-Limit-Reset`. These limits are subject to change, so it's advisable to implement these headers in your application logic.
+If you exceed these limits, you'll receive a **429 Too Many Requests** response. The following response headers are included on all authenticated requests:
+
+| Header                    | Description                                    |
+|---------------------------|------------------------------------------------|
+| `X-Rate-Limit`           | Maximum number of requests allowed in the current window. |
+| `X-Rate-Limit-Remaining` | Number of requests remaining in the current window.       |
+| `X-Rate-Limit-Reset`     | Seconds until the current rate limit window resets.       |
+
+These limits are subject to change, so it's advisable to implement these headers in your application logic.
 
 ## Important Information
 
 - **API Key Security**: Keep your API key confidential and never expose it in client-side code. You are responsible for your API key, and misuse may result in termination per our [Terms of Service](https://docs.snusbase.com/terms-of-service).
 
 - **Data Sanitization**: Always sanitize outputs from our API before rendering them in your application. We don't modify much of the data we import, so expect HTML and potential exploits aimed at the third-party websites we import to still be present in some datasets.
-
-- **Data Types**: Most results will have column values output as strings. However, in some cases—especially with older datasets—you may encounter inconsistent typing, such as integers for the `"id"` and `"uid"` columns.
