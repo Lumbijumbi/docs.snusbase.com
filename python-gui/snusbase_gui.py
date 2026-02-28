@@ -15,8 +15,6 @@ import threading
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 
-import requests
-
 from snusbase_client import SnusbaseClient, parse_csv
 
 
@@ -111,7 +109,7 @@ class SnusbaseGUI:
                     0, lambda: self._display_result(text_area, status_code, data)
                 )
                 self.root.after(0, lambda: self.status_var.set("Request complete"))
-            except requests.exceptions.RequestException as e:
+            except Exception as e:
                 self.root.after(0, lambda: self._display_error(text_area, e))
                 self.root.after(0, lambda: self.status_var.set("Request failed"))
 

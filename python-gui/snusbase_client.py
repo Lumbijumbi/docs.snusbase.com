@@ -23,7 +23,11 @@ class SnusbaseClient:
         response = requests.request(
             method, url, headers=headers, json=body, timeout=30
         )
-        return response.status_code, response.json()
+        try:
+            data = response.json()
+        except requests.exceptions.JSONDecodeError:
+            data = {"error": "Invalid JSON response", "body": response.text[:500]}
+        return response.status_code, data
 
     def get_stats(self):
         """Retrieve database statistics (no authentication required)."""

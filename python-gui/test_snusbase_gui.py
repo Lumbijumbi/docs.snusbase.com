@@ -4,6 +4,8 @@ import json
 import unittest
 from unittest.mock import patch, MagicMock
 
+import requests
+
 from snusbase_client import SnusbaseClient, parse_csv, SNUSBASE_API_URL
 
 
@@ -159,23 +161,40 @@ class TestSnusbaseClient(unittest.TestCase):
         client = SnusbaseClient()
         self.assertEqual(client.api_key, "")
 
+    @patch("snusbase_client.requests.request")
+    def test_handles_invalid_json_response(self, mock_request):
+        """Test that non-JSON responses are handled gracefully."""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.json.side_effect = requests.exceptions.JSONDecodeError(
+            "msg", "doc", 0
+        )
+        mock_response.text = "Internal Server Error"
+        mock_request.return_value = mock_response
+
+        status, data = self.client.get_stats()
+
+        self.assertEqual(status, 500)
+        self.assertIn("error", data)
+        self.assertIn("Invalid JSON response", data["error"])
+
 
 class TestParseCSV(unittest.TestCase):
     """Test the parse_csv helper function."""
 
-    def test_basic(self):
+    def test_parse_csv_with_spaces(self):
         self.assertEqual(parse_csv("a, b, c"), ["a", "b", "c"])
 
-    def test_empty(self):
+    def test_parse_csv_empty_string(self):
         self.assertEqual(parse_csv(""), [])
 
-    def test_whitespace_only(self):
+    def test_parse_csv_whitespace_only_entries(self):
         self.assertEqual(parse_csv("  ,  ,  "), [])
 
-    def test_single_value(self):
+    def test_parse_csv_single_value(self):
         self.assertEqual(parse_csv("hello"), ["hello"])
 
-    def test_strips_whitespace(self):
+    def test_parse_csv_strips_whitespace(self):
         self.assertEqual(parse_csv("  foo  ,  bar  "), ["foo", "bar"])
 
 
