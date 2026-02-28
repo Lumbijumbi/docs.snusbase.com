@@ -184,6 +184,47 @@ class TestSnusbaseClient(unittest.TestCase):
         self.assertIn("error", data)
         self.assertIn("Invalid JSON response", data["error"])
 
+    @patch("snusbase_client.requests.request")
+    def test_handles_connection_error(self, mock_request):
+        """Test that connection errors (e.g. proxy failures) are handled."""
+        mock_request.side_effect = requests.exceptions.ConnectionError(
+            "Max retries exceeded (Caused by ProxyError)"
+        )
+
+        status, data = self.client.combo_lookup(
+            terms=["test@example.com"], types=["username"]
+        )
+
+        self.assertEqual(status, 0)
+        self.assertIn("error", data)
+        self.assertIn("Connection failed", data["error"])
+
+    @patch("snusbase_client.requests.request")
+    def test_handles_timeout_error(self, mock_request):
+        """Test that timeout errors are handled gracefully."""
+        mock_request.side_effect = requests.exceptions.Timeout("Request timed out")
+
+        status, data = self.client.get_stats()
+
+        self.assertEqual(status, 0)
+        self.assertIn("error", data)
+        self.assertIn("Request timed out", data["error"])
+
+    @patch("snusbase_client.requests.request")
+    def test_handles_generic_request_exception(self, mock_request):
+        """Test that other request exceptions are handled gracefully."""
+        mock_request.side_effect = requests.exceptions.RequestException(
+            "Something went wrong"
+        )
+
+        status, data = self.client.search(
+            terms=["test@example.com"], types=["email"]
+        )
+
+        self.assertEqual(status, 0)
+        self.assertIn("error", data)
+        self.assertIn("Request failed", data["error"])
+
 
 class TestParseCSV(unittest.TestCase):
     """Test the parse_csv helper function."""
