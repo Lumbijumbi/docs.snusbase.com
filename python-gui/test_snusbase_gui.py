@@ -19,7 +19,7 @@ class TestSnusbaseClient(unittest.TestCase):
     """Test the SnusbaseClient class."""
 
     def setUp(self):
-        self.client = SnusbaseClient(api_key="sb_test_key_1234567890123456")
+        self.client = SnusbaseClient(api_key="sb_test_key_12345678901234567")
 
     @patch("snusbase_client.requests.request")
     def test_get_stats(self, mock_request):
@@ -35,7 +35,7 @@ class TestSnusbaseClient(unittest.TestCase):
             "GET",
             SNUSBASE_API_URL + "data/stats",
             headers={
-                "Auth": "sb_test_key_1234567890123456",
+                "Auth": "sb_test_key_12345678901234567",
                 "Content-Type": "application/json",
             },
             json=None,
@@ -60,7 +60,7 @@ class TestSnusbaseClient(unittest.TestCase):
             "POST",
             SNUSBASE_API_URL + "data/search",
             headers={
-                "Auth": "sb_test_key_1234567890123456",
+                "Auth": "sb_test_key_12345678901234567",
                 "Content-Type": "application/json",
             },
             json={"terms": ["test@example.com"], "types": ["email"]},

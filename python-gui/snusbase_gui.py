@@ -556,6 +556,8 @@ class SnusbaseGUI:
                 else:
                     _, data = self.client.ip_whois([term])
                 term_results = data.get("results", {})
+                # Aggregate all results into lists for uniform handling
+                # by flatten_results() which supports list-of-dict format
                 for key, val in term_results.items():
                     all_results.setdefault(key, [])
                     if isinstance(val, list):

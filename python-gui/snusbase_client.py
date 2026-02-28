@@ -117,6 +117,7 @@ def export_csv(data, filepath):
         with open(filepath, "w", encoding="utf-8", newline="") as f:
             f.write("")
         return
+    # Deduplicate field names while preserving insertion order
     fieldnames = list(dict.fromkeys(k for row in rows for k in row.keys()))
     with open(filepath, "w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
