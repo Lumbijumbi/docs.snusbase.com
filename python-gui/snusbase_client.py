@@ -24,9 +24,16 @@ class SnusbaseClient:
         }
         method = "POST" if body else "GET"
         url = SNUSBASE_API_URL + endpoint
-        response = requests.request(
-            method, url, headers=headers, json=body, timeout=30
-        )
+        try:
+            response = requests.request(
+                method, url, headers=headers, json=body, timeout=30
+            )
+        except requests.exceptions.ConnectionError as exc:
+            return 0, {"error": f"Connection failed: {exc}"}
+        except requests.exceptions.Timeout as exc:
+            return 0, {"error": f"Request timed out: {exc}"}
+        except requests.exceptions.RequestException as exc:
+            return 0, {"error": f"Request failed: {exc}"}
         try:
             data = response.json()
         except requests.exceptions.JSONDecodeError:
