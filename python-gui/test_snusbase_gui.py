@@ -1,12 +1,18 @@
 """Tests for the SnusbaseClient API client logic."""
 
+import csv
 import json
+import os
+import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
 
 import requests
 
-from snusbase_client import SnusbaseClient, parse_csv, SNUSBASE_API_URL
+from snusbase_client import (
+    SnusbaseClient, parse_csv, SNUSBASE_API_URL,
+    flatten_results, export_json, export_csv, export_txt,
+)
 
 
 class TestSnusbaseClient(unittest.TestCase):
@@ -196,6 +202,120 @@ class TestParseCSV(unittest.TestCase):
 
     def test_parse_csv_strips_whitespace(self):
         self.assertEqual(parse_csv("  foo  ,  bar  "), ["foo", "bar"])
+
+
+class TestFlattenResults(unittest.TestCase):
+    """Test the flatten_results helper function."""
+
+    def test_flatten_grouped_list_results(self):
+        data = {
+            "results": {
+                "DB_A": [{"email": "a@b.com"}, {"email": "c@d.com"}],
+                "DB_B": [{"email": "e@f.com"}],
+            }
+        }
+        rows = flatten_results(data)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0]["_source"], "DB_A")
+        self.assertEqual(rows[0]["email"], "a@b.com")
+        self.assertEqual(rows[2]["_source"], "DB_B")
+
+    def test_flatten_dict_results(self):
+        data = {
+            "results": {
+                "1.2.3.4": {"country": "US", "city": "NYC"},
+            }
+        }
+        rows = flatten_results(data)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["_source"], "1.2.3.4")
+        self.assertEqual(rows[0]["country"], "US")
+
+    def test_flatten_empty_results(self):
+        self.assertEqual(flatten_results({"results": {}}), [])
+        self.assertEqual(flatten_results({}), [])
+
+    def test_flatten_no_results_key(self):
+        data = {"DB_A": [{"email": "a@b.com"}]}
+        rows = flatten_results(data)
+        self.assertEqual(len(rows), 1)
+
+
+class TestExportFunctions(unittest.TestCase):
+    """Test the export_json, export_csv, and export_txt functions."""
+
+    def setUp(self):
+        self.sample_data = {
+            "results": {
+                "DB_A": [
+                    {"email": "a@b.com", "password": "pw1"},
+                    {"email": "c@d.com", "password": "pw2"},
+                ],
+            }
+        }
+        self.tmpdir = tempfile.mkdtemp()
+
+    def test_export_json(self):
+        path = os.path.join(self.tmpdir, "out.json")
+        export_json(self.sample_data, path)
+        with open(path, "r", encoding="utf-8") as f:
+            loaded = json.load(f)
+        self.assertEqual(loaded, self.sample_data)
+
+    def test_export_csv(self):
+        path = os.path.join(self.tmpdir, "out.csv")
+        export_csv(self.sample_data, path)
+        with open(path, "r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["email"], "a@b.com")
+        self.assertEqual(rows[0]["_source"], "DB_A")
+        self.assertEqual(rows[1]["password"], "pw2")
+
+    def test_export_csv_empty(self):
+        path = os.path.join(self.tmpdir, "empty.csv")
+        export_csv({"results": {}}, path)
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertEqual(content, "")
+
+    def test_export_txt(self):
+        path = os.path.join(self.tmpdir, "out.txt")
+        export_txt(self.sample_data, path)
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        self.assertEqual(len(lines), 2)
+        self.assertIn("_source=DB_A", lines[0])
+        self.assertIn("email=a@b.com", lines[0])
+
+    def test_export_txt_empty(self):
+        path = os.path.join(self.tmpdir, "empty.txt")
+        export_txt({"results": {}}, path)
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertEqual(content, "")
+
+    def test_export_json_whois_data(self):
+        """Test exporting IP WHOIS-style dict results."""
+        data = {"results": {"1.2.3.4": {"country": "US"}}}
+        path = os.path.join(self.tmpdir, "whois.json")
+        export_json(data, path)
+        with open(path, "r", encoding="utf-8") as f:
+            loaded = json.load(f)
+        self.assertEqual(loaded["results"]["1.2.3.4"]["country"], "US")
+
+    def test_export_csv_whois_data(self):
+        """Test CSV export with dict-style (non-list) results."""
+        data = {"results": {"1.2.3.4": {"country": "US", "city": "NYC"}}}
+        path = os.path.join(self.tmpdir, "whois.csv")
+        export_csv(data, path)
+        with open(path, "r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["_source"], "1.2.3.4")
+        self.assertEqual(rows[0]["country"], "US")
 
 
 if __name__ == "__main__":

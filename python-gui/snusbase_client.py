@@ -1,5 +1,9 @@
 """Snusbase API client module."""
 
+import csv
+import json
+import os
+
 import requests
 
 
@@ -71,3 +75,63 @@ class SnusbaseClient:
 def parse_csv(text):
     """Parse comma-separated values into a list of stripped strings."""
     return [t.strip() for t in text.split(",") if t.strip()]
+
+
+def flatten_results(data):
+    """Flatten nested API results into a list of flat dictionaries.
+
+    Handles the grouped result structure returned by the Snusbase API where
+    results are nested under group keys (e.g. database names, IPs).
+    """
+    rows = []
+    results = data.get("results", data)
+    if not isinstance(results, dict):
+        return rows
+    for group_key, entries in results.items():
+        if isinstance(entries, list):
+            for entry in entries:
+                if isinstance(entry, dict):
+                    row = {"_source": group_key}
+                    row.update(entry)
+                    rows.append(row)
+        elif isinstance(entries, dict):
+            row = {"_source": group_key}
+            row.update(entries)
+            rows.append(row)
+    return rows
+
+
+def export_json(data, filepath):
+    """Export API response data to a JSON file."""
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def export_csv(data, filepath):
+    """Export API response data to a CSV file.
+
+    Flattens the nested results and writes each record as a CSV row.
+    """
+    rows = flatten_results(data)
+    if not rows:
+        with open(filepath, "w", encoding="utf-8", newline="") as f:
+            f.write("")
+        return
+    fieldnames = list(dict.fromkeys(k for row in rows for k in row.keys()))
+    with open(filepath, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def export_txt(data, filepath):
+    """Export API response data to a plain text file.
+
+    Writes one record per line with key=value pairs.
+    """
+    rows = flatten_results(data)
+    with open(filepath, "w", encoding="utf-8") as f:
+        for row in rows:
+            parts = [f"{k}={v}" for k, v in row.items()]
+            f.write(" | ".join(parts) + "\n")
+

@@ -7,15 +7,20 @@ Supports all API endpoints:
   - Combo Lookup (POST /tools/combo-lookup)
   - Hash Lookup (POST /tools/hash-lookup)
   - IP WHOIS Lookup (POST /tools/ip-whois)
+  - Bulk Search (batch query from file)
+  - Export Results (JSON, CSV, TXT)
 """
 
 import html
 import json
+import os
 import threading
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
+from tkinter import ttk, messagebox, scrolledtext, filedialog
 
-from snusbase_client import SnusbaseClient, parse_csv
+from snusbase_client import (
+    SnusbaseClient, parse_csv, export_json, export_csv, export_txt,
+)
 
 
 class SnusbaseGUI:
@@ -28,6 +33,7 @@ class SnusbaseGUI:
         self.root.minsize(700, 500)
 
         self.client = SnusbaseClient()
+        self._last_results = {}
         self._build_ui()
 
     def _build_ui(self):
@@ -63,6 +69,7 @@ class SnusbaseGUI:
         self._build_combo_tab()
         self._build_hash_tab()
         self._build_whois_tab()
+        self._build_bulk_tab()
 
         # Status bar
         self.status_var = tk.StringVar(value="Ready")
@@ -82,8 +89,10 @@ class SnusbaseGUI:
         text_area.pack(fill=tk.BOTH, expand=True)
         return text_area
 
-    def _display_result(self, text_area, status_code, data):
+    def _display_result(self, text_area, status_code, data, tab_key=None):
         """Display API response in a text area with HTML-escaped output."""
+        if tab_key:
+            self._last_results[tab_key] = data
         text_area.config(state=tk.NORMAL)
         text_area.delete("1.0", tk.END)
 
@@ -98,7 +107,7 @@ class SnusbaseGUI:
         text_area.insert(tk.END, f"Error: {html.escape(str(error_msg))}")
         text_area.config(state=tk.DISABLED)
 
-    def _run_in_thread(self, func, text_area):
+    def _run_in_thread(self, func, text_area, tab_key=None):
         """Run an API call in a background thread."""
         self.status_var.set("Sending request...")
 
@@ -106,7 +115,7 @@ class SnusbaseGUI:
             try:
                 status_code, data = func()
                 self.root.after(
-                    0, lambda: self._display_result(text_area, status_code, data)
+                    0, lambda: self._display_result(text_area, status_code, data, tab_key)
                 )
                 self.root.after(0, lambda: self.status_var.set("Request complete"))
             except Exception as e:
@@ -133,10 +142,11 @@ class SnusbaseGUI:
         ttk.Button(btn_frame, text="Get Statistics", command=self._on_get_stats).pack(
             side=tk.LEFT
         )
+        self._add_export_button(btn_frame, "stats")
 
     def _on_get_stats(self):
         self._update_client_key()
-        self._run_in_thread(self.client.get_stats, self.stats_results)
+        self._run_in_thread(self.client.get_stats, self.stats_results, "stats")
 
     # ---- Database Search Tab ----
 
@@ -206,6 +216,7 @@ class SnusbaseGUI:
         ttk.Button(btn_frame, text="Search", command=self._on_search).pack(
             side=tk.LEFT
         )
+        self._add_export_button(btn_frame, "search")
 
     def _on_search(self):
         self._update_client_key()
@@ -228,6 +239,7 @@ class SnusbaseGUI:
         self._run_in_thread(
             lambda: self.client.search(terms, types, wildcard, group_by, tables),
             self.search_results,
+            "search",
         )
 
     # ---- Combo Lookup Tab ----
@@ -289,6 +301,7 @@ class SnusbaseGUI:
         ttk.Button(
             btn_frame, text="Combo Lookup", command=self._on_combo_lookup
         ).pack(side=tk.LEFT)
+        self._add_export_button(btn_frame, "combo")
 
     def _on_combo_lookup(self):
         self._update_client_key()
@@ -309,6 +322,7 @@ class SnusbaseGUI:
         self._run_in_thread(
             lambda: self.client.combo_lookup(terms, types, wildcard, group_by),
             self.combo_results,
+            "combo",
         )
 
     # ---- Hash Lookup Tab ----
@@ -370,6 +384,7 @@ class SnusbaseGUI:
         ttk.Button(
             btn_frame, text="Hash Lookup", command=self._on_hash_lookup
         ).pack(side=tk.LEFT)
+        self._add_export_button(btn_frame, "hash")
 
     def _on_hash_lookup(self):
         self._update_client_key()
@@ -390,6 +405,7 @@ class SnusbaseGUI:
         self._run_in_thread(
             lambda: self.client.hash_lookup(terms, types, wildcard, group_by),
             self.hash_results,
+            "hash",
         )
 
     # ---- IP WHOIS Lookup Tab ----
@@ -418,6 +434,7 @@ class SnusbaseGUI:
         ttk.Button(
             btn_frame, text="IP WHOIS Lookup", command=self._on_whois_lookup
         ).pack(side=tk.LEFT)
+        self._add_export_button(btn_frame, "whois")
 
     def _on_whois_lookup(self):
         self._update_client_key()
@@ -430,13 +447,172 @@ class SnusbaseGUI:
         self._run_in_thread(
             lambda: self.client.ip_whois(terms),
             self.whois_results,
+            "whois",
         )
+
+    # ---- Bulk Search Tab ----
+
+    def _build_bulk_tab(self):
+        tab = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(tab, text="Bulk Search")
+
+        ttk.Label(
+            tab,
+            text="Load search terms from a file (one per line) and batch-query the API.",
+        ).pack(anchor=tk.W, pady=(0, 5))
+
+        input_frame = ttk.LabelFrame(tab, text="Bulk Search Parameters", padding=10)
+        input_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        ttk.Label(input_frame, text="Terms File:").grid(
+            row=0, column=0, sticky=tk.W, pady=2
+        )
+        file_frame = ttk.Frame(input_frame)
+        file_frame.grid(row=0, column=1, sticky=tk.EW, padx=5, pady=2)
+        self.bulk_file_var = tk.StringVar()
+        ttk.Entry(file_frame, textvariable=self.bulk_file_var, width=45).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
+        ttk.Button(
+            file_frame, text="Browse...", command=self._on_bulk_browse
+        ).pack(side=tk.LEFT, padx=(5, 0))
+
+        ttk.Label(input_frame, text="Endpoint:").grid(
+            row=1, column=0, sticky=tk.W, pady=2
+        )
+        self.bulk_endpoint_var = tk.StringVar(value="Database Search")
+        ttk.Combobox(
+            input_frame,
+            textvariable=self.bulk_endpoint_var,
+            values=[
+                "Database Search",
+                "Combo Lookup",
+                "Hash Lookup",
+                "IP WHOIS Lookup",
+            ],
+            state="readonly",
+            width=25,
+        ).grid(row=1, column=1, sticky=tk.W, padx=5, pady=2)
+
+        ttk.Label(input_frame, text="Types (comma-separated):").grid(
+            row=2, column=0, sticky=tk.W, pady=2
+        )
+        self.bulk_types_var = tk.StringVar(value="email")
+        ttk.Entry(input_frame, textvariable=self.bulk_types_var, width=40).grid(
+            row=2, column=1, sticky=tk.W, padx=5, pady=2
+        )
+
+        input_frame.columnconfigure(1, weight=1)
+
+        self.bulk_results = self._create_results_area(tab)
+
+        btn_frame = ttk.Frame(tab)
+        btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(
+            btn_frame, text="Run Bulk Search", command=self._on_bulk_search
+        ).pack(side=tk.LEFT)
+        self._add_export_button(btn_frame, "bulk")
+
+    def _on_bulk_browse(self):
+        filepath = filedialog.askopenfilename(
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+        )
+        if filepath:
+            self.bulk_file_var.set(filepath)
+
+    def _on_bulk_search(self):
+        self._update_client_key()
+        filepath = self.bulk_file_var.get().strip()
+        if not filepath or not os.path.isfile(filepath):
+            messagebox.showwarning(
+                "File Required", "Please select a valid file with search terms."
+            )
+            return
+        types = parse_csv(self.bulk_types_var.get())
+        endpoint = self.bulk_endpoint_var.get()
+
+        if endpoint != "IP WHOIS Lookup" and not types:
+            messagebox.showwarning(
+                "Input Required", "Please enter at least one type."
+            )
+            return
+
+        with open(filepath, "r", encoding="utf-8") as f:
+            terms = [line.strip() for line in f if line.strip()]
+
+        if not terms:
+            messagebox.showwarning("Empty File", "The file contains no search terms.")
+            return
+
+        def bulk_work():
+            all_results = {}
+            for term in terms:
+                if endpoint == "Database Search":
+                    _, data = self.client.search([term], types)
+                elif endpoint == "Combo Lookup":
+                    _, data = self.client.combo_lookup([term], types)
+                elif endpoint == "Hash Lookup":
+                    _, data = self.client.hash_lookup([term], types)
+                else:
+                    _, data = self.client.ip_whois([term])
+                term_results = data.get("results", {})
+                for key, val in term_results.items():
+                    all_results.setdefault(key, [])
+                    if isinstance(val, list):
+                        all_results[key].extend(val)
+                    else:
+                        all_results[key].append(val)
+            total = sum(
+                len(v) if isinstance(v, list) else 1 for v in all_results.values()
+            )
+            return 200, {
+                "terms_searched": len(terms),
+                "total_results": total,
+                "results": all_results,
+            }
+
+        self._run_in_thread(bulk_work, self.bulk_results, "bulk")
 
     # ---- Helpers ----
 
     def _update_client_key(self):
         """Update the client's API key from the entry field."""
         self.client.api_key = self.api_key_var.get().strip()
+
+    def _add_export_button(self, parent, tab_key):
+        """Add an Export Results button to a button frame."""
+        ttk.Button(
+            parent, text="Export Results",
+            command=lambda: self._on_export(tab_key),
+        ).pack(side=tk.LEFT, padx=(10, 0))
+
+    def _on_export(self, tab_key):
+        """Prompt user to export the last results for a tab."""
+        data = self._last_results.get(tab_key)
+        if not data:
+            messagebox.showinfo("No Data", "No results to export. Run a query first.")
+            return
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[
+                ("JSON files", "*.json"),
+                ("CSV files", "*.csv"),
+                ("Text files", "*.txt"),
+            ],
+        )
+        if not filepath:
+            return
+        try:
+            ext = os.path.splitext(filepath)[1].lower()
+            if ext == ".csv":
+                export_csv(data, filepath)
+            elif ext == ".txt":
+                export_txt(data, filepath)
+            else:
+                export_json(data, filepath)
+            self.status_var.set(f"Exported to {filepath}")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
 
 
 def main():
